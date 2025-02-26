@@ -79,7 +79,7 @@ Contributions are welcome! If you'd like to contribute:
 ## Contributors
 This project was developed as part of my projects. Contributors include:
 
-cyprian ndemo
+cyprian ndemo and 
 albrieght jeruto
 
 ## License
