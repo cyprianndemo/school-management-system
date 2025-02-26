@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <base href="/users/parent/">
+
 </head>
 <body>
 <nav>

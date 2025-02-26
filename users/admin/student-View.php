@@ -7,13 +7,13 @@ $search = (isset($_GET['search'])) ? $_GET['search'] : '';
 
 // SQL query to fetch all students or search for a specific student
 $sql = "SELECT * FROM students";
-if($search != '') {
+if ($search != '') {
     // If a search query is provided, add a WHERE clause to the SQL query
     $sql .= " WHERE name LIKE '%$search%' OR id LIKE '%$search%'";
 }
 
 // Execute the SQL query
-$result = mysqli_query($link, $sql);
+$result = pg_query($link, $sql);
 
 ?>
 
@@ -49,7 +49,9 @@ $result = mysqli_query($link, $sql);
         <th class="viewTable">Address</th>
         <th class="viewTable">Parent Id</th>
     </tr>
-    <?php while($row = mysqli_fetch_assoc($result)) { ?>
+    <?php
+    // Loop through and display the rows from the result set
+    while ($row = pg_fetch_assoc($result)) { ?>
         <tr>
             <!-- Display each student's information in a table row -->
             <td class="viewTable"><?php echo $row['id']; ?></td>

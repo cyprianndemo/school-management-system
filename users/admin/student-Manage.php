@@ -3,15 +3,26 @@
 include_once('../../db-connect.php');
 
 // Check if the user is logged in by checking the session
-$check=$_SESSION['login_id'];
-$session=mysqli_query($link,"SELECT name  FROM admin WHERE id='$check' ");
-$row=mysqli_fetch_array($session);
+$check = $_SESSION['login_id'];
+
+// Connect to PostgreSQL database using pg_connect
+// Assuming the database connection is stored in $link
+$session = pg_query($link, "SELECT name FROM admin WHERE id = '$check'");
+
+if (!$session) {
+    die("Error in query: " . pg_last_error($link));
+}
+
+$row = pg_fetch_assoc($session);
 $login_session = $loged_user_name = $row['name'];
+
 // If the user is not logged in, redirect to the main page
-if(!isset($login_session)){
+if (!isset($login_session)) {
     header("Location:../../");
+    exit(); // Make sure no further code is executed after the redirect
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

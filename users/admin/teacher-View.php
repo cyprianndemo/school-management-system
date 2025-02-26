@@ -5,16 +5,22 @@ include_once('../../db-connect.php');
 // Get the search query from the GET request
 $search = (isset($_GET['search'])) ? $_GET['search'] : '';
 
-// SQL query to fetch all teachers or search for a specific teacher
+// Base SQL query
 $sql = "SELECT * FROM teachers";
-if($search != '') {
-    // If a search query is provided, add a WHERE clause to the SQL query
-    $sql .= " WHERE name LIKE '%$search%' OR id LIKE '%$search%'";
+$params = [];
+
+// If search query is provided, use a parameterized query
+if ($search != '') {
+    $sql .= " WHERE name ILIKE $1 OR id::TEXT ILIKE $1"; // Use ILIKE for case-insensitive search
+    $params[] = "%{$search}%"; // Assign parameter value
 }
 
-// Execute the SQL query
-$result = mysqli_query($link, $sql);
+// Prepare and execute the query
+$result = pg_query_params($link, $sql, $params);
 
+if (!$result) {
+    die("Query failed: " . pg_last_error($link));
+}
 ?>
 
 <!DOCTYPE html>
@@ -32,14 +38,13 @@ $result = mysqli_query($link, $sql);
 <?php include("navBar.php");?>
 <!-- Search form -->
 <form method="get" class="searchForm" action="">
-    <input type="text" class="search" name="search" placeholder="Search by teacher name or id" value="<?php echo $search; ?>">
+    <input type="text" class="search" name="search" placeholder="Search by teacher name or ID" value="<?php echo htmlspecialchars($search); ?>">
     <input type="submit" value="Search">
 </form>
 
 <!-- Teachers table -->
 <table>
     <tr>
-        <!-- Table headers -->
         <th class="viewTable">ID</th>
         <th class="viewTable">Name</th>
         <th class="viewTable">Phone</th>
@@ -47,20 +52,21 @@ $result = mysqli_query($link, $sql);
         <th class="viewTable">Address</th>
         <th class="viewTable">Gender</th>
         <th class="viewTable">Date Of Birth</th>
+        <th class="viewTable">Actions</th>
     </tr>
-    <?php while($row = mysqli_fetch_assoc($result)) { ?>
+    <?php while ($row = pg_fetch_assoc($result)) { ?>
         <tr>
-            <!-- Display each teacher's information in a table row -->
-            <td class="viewTable"><?php echo $row['id']; ?></td>
-            <td class="viewTable"><?php echo $row['name']; ?></td>
-            <td class="viewTable"><?php echo $row['phone']; ?></td>
-            <td class="viewTable"><?php echo $row['email']; ?></td>
-            <td class="viewTable"><?php echo $row['address']; ?></td>
-            <td class="viewTable"><?php echo $row['sex']; ?></td>
-            <td class="viewTable"><?php echo $row['dob']; ?></td>
-            <!-- Update and Delete buttons -->
-            <td class="viewTable"><a href="teacher-Update.php?id=<?php echo $row['id']; ?>"><button>Update</button></a></td>
-            <td class="viewTable"><a href="teacher-Delete.php?id=<?php echo $row['id']; ?>"><button>Delete</button></a></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['id']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['name']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['phone']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['email']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['address']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['sex']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['dob']); ?></td>
+            <td class="viewTable">
+                <a href="teacher-Update.php?id=<?php echo urlencode($row['id']); ?>"><button>Update</button></a>
+                <a href="teacher-Delete.php?id=<?php echo urlencode($row['id']); ?>"><button>Delete</button></a>
+            </td>
         </tr>
     <?php } ?>
 </table>

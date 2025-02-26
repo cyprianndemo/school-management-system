@@ -3,7 +3,7 @@ include_once('../../db-connect.php');
 
 $teacherId = isset($_GET['id']) ? $_GET['id'] : '';
 
-if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id'])){
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id'])) {
     $teacherId = $_POST['id'];
     $teacherName = $_POST['name'];
     $teacherPhone = $_POST['phone'];
@@ -13,17 +13,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id'])){
     $teacherAddress = $_POST['address'];
 
     $sql = "UPDATE teachers SET name='$teacherName', phone='$teacherPhone', email='$teacherEmail', sex='$teacherGender', dob='$teacherDOB', address='$teacherAddress' WHERE id='$teacherId'";
-    $success = mysqli_query($link,$sql);
-    if(!$success) {
-        die('Could not Update data: '.mysqli_error($link));
+    $success = pg_query($link, $sql);
+    if (!$success) {
+        die('Could not Update data: ' . pg_last_error($link));
     }
     echo "Update data successfully\n";
 }
 
 // Fetch teacher's current information
 $sql = "SELECT * FROM teachers WHERE id='$teacherId'";
-$result = mysqli_query($link, $sql);
-$teacher = mysqli_fetch_assoc($result);
+$result = pg_query($link, $sql);
+$teacher = pg_fetch_assoc($result);
 
 ?>
 <!DOCTYPE html>

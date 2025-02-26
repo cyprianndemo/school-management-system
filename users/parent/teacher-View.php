@@ -9,11 +9,16 @@ $search = (isset($_GET['search'])) ? $_GET['search'] : '';
 $sql = "SELECT * FROM teachers";
 if($search != '') {
     // If a search query is provided, add a WHERE clause to the SQL query
-    $sql .= " WHERE name LIKE '%$search%' OR id LIKE '%$search%'";
+    $sql .= " WHERE name LIKE $1 OR id LIKE $2";
 }
 
-// Execute the SQL query
-$result = mysqli_query($link, $sql);
+// Prepare the query using pg_query_params to prevent SQL injection
+$result = pg_query_params($link, $sql, array('%'.$search.'%', '%'.$search.'%'));
+
+// Check if the query was successful
+if (!$result) {
+    echo "Error: " . pg_last_error($link); // Show error message if query fails
+}
 
 ?>
 
@@ -28,14 +33,14 @@ $result = mysqli_query($link, $sql);
 <body>
 <header>
     <!-- Main title -->
-    <h1>Parent Portal-View Teachers</h1>
+    <h1>Parent Portal - View Teachers</h1>
 </header>
 <!-- Include the navigation bar -->
 <?php include("navBar.php");?>
 <!-- Search form -->
 <form method="get" class="searchForm" action="">
     <!-- Input field for the search query -->
-    <input type="text" class="search" name="search" placeholder="Search by teacher name or id" value="<?php echo $search; ?>">
+    <input type="text" class="search" name="search" placeholder="Search by teacher name or id" value="<?php echo htmlspecialchars($search); ?>">
     <!-- Submit button for the search form -->
     <input type="submit" value="Search">
 </form>
@@ -48,24 +53,28 @@ $result = mysqli_query($link, $sql);
         <th class="viewTable">Name</th>
         <th class="viewTable">Phone</th>
         <th class="viewTable">Email</th>
-        <th class="viewTable">address</th>
-        <th class="viewTable">gender</th>
-        <th class="viewTable">Date Of Birth</th>
+        <th class="viewTable">Address</th>
+        <th class="viewTable">Gender</th>
+        <th class="viewTable">Date of Birth</th>
     </tr>
-    <?php while($row = mysqli_fetch_assoc($result)) { ?>
+    <?php 
+    while ($row = pg_fetch_assoc($result)) { // Fetch results from PostgreSQL
+    ?>
         <tr>
             <!-- Display each teacher's information in a table row -->
-            <td class="viewTable"><?php echo $row['id']; ?></td>
-            <td class="viewTable"><?php echo $row['name']; ?></td>
-            <td class="viewTable"><?php echo $row['phone']; ?></td>
-            <td class="viewTable"><?php echo $row['email']; ?></td>
-            <td class="viewTable"><?php echo $row['address']; ?></td>
-            <td class="viewTable"><?php echo $row['sex']; ?></td>
-            <td class="viewTable"><?php echo $row['dob']; ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['id']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['name']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['phone']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['email']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['address']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['sex']); ?></td>
+            <td class="viewTable"><?php echo htmlspecialchars($row['dob']); ?></td>
             <!-- Contact button -->
             <td class="viewTable"><a href="teacher-Contact.php?id=<?php echo $row['id']; ?>"><button>Contact</button></a></td>
         </tr>
-    <?php } ?>
+    <?php 
+    }
+    ?>
 </table>
 
 </body>

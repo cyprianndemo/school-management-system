@@ -1,15 +1,16 @@
 <?php
 session_start();
-//database connection
-$host="localhost";
-$username="root";
-$password="";
-$db_name="tp-final-db";
-// Create connection variable
-$link = mysqli_connect($host, $username, $password, $db_name) or die("Cannot Connect");
+// Database connection details for PostgreSQL
+$host = "localhost";
+$username = "postgres";  // change this to your PostgreSQL username
+$password = "@Omega_2021";  // change this to your PostgreSQL password
+$db_name = "tpfinaldb";
+
+// Create connection
+$link = pg_connect("host=$host dbname=$db_name user=$username password=$password");
+
 // Check connection
-if (mysqli_connect_errno()) {
-    printf("Connect failed: %s\n", mysqli_connect_error());
-    exit();
+if (!$link) {
+    die("Error: Unable to connect to the database.");
 }
 ?>

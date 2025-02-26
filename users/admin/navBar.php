@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<title>Title</title>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <base href="/users/admin/">
 </head>
 <body>
 <nav>

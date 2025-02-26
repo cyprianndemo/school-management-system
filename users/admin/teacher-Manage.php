@@ -3,12 +3,13 @@
 include_once('../../db-connect.php');
 
 // Check if the user is logged in by checking the session
-$check=$_SESSION['login_id'];
-$session=mysqli_query($link,"SELECT name  FROM admin WHERE id='$check' ");
-$row=mysqli_fetch_array($session);
+$check = $_SESSION['login_id'];
+$session = pg_query($link, "SELECT name FROM admin WHERE id='$check'");
+$row = pg_fetch_assoc($session);
 $login_session = $loged_user_name = $row['name'];
+
 // If the user is not logged in, redirect to the main page
-if(!isset($login_session)){
+if (!isset($login_session)) {
     header("Location:../../");
 }
 ?>

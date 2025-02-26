@@ -1,36 +1,38 @@
 <?php
-// Include the database connection file
+// Include the database connection file for PostgreSQL
 include_once('../../db-connect.php');
 
 // Check if the 'id' is set in the GET request or POST request
 $parentId = isset($_GET['id']) ? $_GET['id'] : '';
 
 // If the form is submitted, update the parent's record
-if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id'])){
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id'])) {
     // Get the new values from the form
-    $parentId = $_POST['id'];
-    $parentPassword = $_POST['password'];
-    $fatherName = $_POST['fathername'];
-    $motherName = $_POST['mothername'];
-    $fatherPhone = $_POST['fatherphone'];
-    $motherPhone = $_POST['motherphone'];
-    $parentAddress = $_POST['address'];
+    $parentId = pg_escape_string($link, $_POST['id']);
+    $parentPassword = pg_escape_string($link, $_POST['password']);
+    $fatherName = pg_escape_string($link, $_POST['fathername']);
+    $motherName = pg_escape_string($link, $_POST['mothername']);
+    $fatherPhone = pg_escape_string($link, $_POST['fatherphone']);
+    $motherPhone = pg_escape_string($link, $_POST['motherphone']);
+    $parentAddress = pg_escape_string($link, $_POST['address']);
 
     // SQL query to update the parent's record in the 'parents' table
     $sql = "UPDATE parents SET password='$parentPassword', fathername='$fatherName', mothername='$motherName', fatherphone='$fatherPhone', motherphone='$motherPhone', address='$parentAddress' WHERE id='$parentId'";
+    
     // Execute the SQL query
-    $success = mysqli_query($link,$sql);
-    if(!$success) {
-        die('Could not Update data: '.mysqli_error($link));
+    $success = pg_query($link, $sql);
+    if (!$success) {
+        die('Could not update data: ' . pg_last_error($link));
     }
-    echo "Update data successfully\n";
+    echo "Updated data successfully\n";
 }
 
 // Fetch the current parent's information
 $sql = "SELECT * FROM parents WHERE id='$parentId'";
-$result = mysqli_query($link, $sql);
-$parent = mysqli_fetch_assoc($result);
+$result = pg_query($link, $sql);
 
+// Fetch data into an associative array
+$parent = pg_fetch_assoc($result);
 ?>
 <!DOCTYPE html>
 <html lang="en">
