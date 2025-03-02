@@ -10,7 +10,7 @@
 <nav>
     <ul>
         <li><a href="index.php">Home</a></li>
-        <li><a href="parent-View.php">View Teachers</a></li>
+        <li><a href="parent-View.php">View Parents</a></li>
 	    <li><a href="teacher-ViewMassages.php">View Messages</a></li>
 	    <li><a href="logout.php">Logout</a></li>
     </ul>

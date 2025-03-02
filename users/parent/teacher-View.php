@@ -3,17 +3,20 @@
 include_once('../../db-connect.php');
 
 // Get the search query from the GET request
-$search = (isset($_GET['search'])) ? $_GET['search'] : '';
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// SQL query to fetch all teachers or search for a specific teacher
+// Default SQL query
 $sql = "SELECT * FROM teachers";
-if($search != '') {
-    // If a search query is provided, add a WHERE clause to the SQL query
-    $sql .= " WHERE name LIKE $1 OR id LIKE $2";
+$params = [];
+
+// Modify query if searching
+if (!empty($search)) {
+    $sql .= " WHERE name ILIKE $1 OR CAST(id AS TEXT) ILIKE $2"; // Use ILIKE for case-insensitive search
+    $params = ['%' . $search . '%', '%' . $search . '%'];
 }
 
-// Prepare the query using pg_query_params to prevent SQL injection
-$result = pg_query_params($link, $sql, array('%'.$search.'%', '%'.$search.'%'));
+// Prepare and execute the query
+$result = empty($params) ? pg_query($link, $sql) : pg_query_params($link, $sql, $params);
 
 // Check if the query was successful
 if (!$result) {
@@ -32,23 +35,16 @@ if (!$result) {
 </head>
 <body>
 <header>
-    <!-- Main title -->
     <h1>Parent Portal - View Teachers</h1>
 </header>
-<!-- Include the navigation bar -->
-<?php include("navBar.php");?>
-<!-- Search form -->
+<?php include("navBar.php"); ?>
 <form method="get" class="searchForm" action="">
-    <!-- Input field for the search query -->
     <input type="text" class="search" name="search" placeholder="Search by teacher name or id" value="<?php echo htmlspecialchars($search); ?>">
-    <!-- Submit button for the search form -->
     <input type="submit" value="Search">
 </form>
 
-<!-- Teachers table -->
 <table>
     <tr>
-        <!-- Table headers -->
         <th class="viewTable">ID</th>
         <th class="viewTable">Name</th>
         <th class="viewTable">Phone</th>
@@ -58,10 +54,8 @@ if (!$result) {
         <th class="viewTable">Date of Birth</th>
     </tr>
     <?php 
-    while ($row = pg_fetch_assoc($result)) { // Fetch results from PostgreSQL
-    ?>
+    while ($row = pg_fetch_assoc($result)) { ?>
         <tr>
-            <!-- Display each teacher's information in a table row -->
             <td class="viewTable"><?php echo htmlspecialchars($row['id']); ?></td>
             <td class="viewTable"><?php echo htmlspecialchars($row['name']); ?></td>
             <td class="viewTable"><?php echo htmlspecialchars($row['phone']); ?></td>
@@ -69,12 +63,9 @@ if (!$result) {
             <td class="viewTable"><?php echo htmlspecialchars($row['address']); ?></td>
             <td class="viewTable"><?php echo htmlspecialchars($row['sex']); ?></td>
             <td class="viewTable"><?php echo htmlspecialchars($row['dob']); ?></td>
-            <!-- Contact button -->
             <td class="viewTable"><a href="teacher-Contact.php?id=<?php echo $row['id']; ?>"><button>Contact</button></a></td>
         </tr>
-    <?php 
-    }
-    ?>
+    <?php } ?>
 </table>
 
 </body>

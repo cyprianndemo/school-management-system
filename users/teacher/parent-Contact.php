@@ -13,11 +13,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $date = date('Y-m-d'); // Get the current date
 
     // Insert the message into the database
-    $sql = "INSERT INTO messages (message, sender_id, reciever_id, date) VALUES ('$message', '$sender_id', '$reciever_id', '$date')";
-    if (mysqli_query($link, $sql)) {
+    $sql = "INSERT INTO messages (message, sender_id, receiver_id, date) VALUES ($1, $2, $3, $4)";
+    $params = [$message, $sender_id, $reciever_id, $date];
+
+    $result = pg_query_params($link, $sql, $params);
+
+    if ($result) {
         echo "Message sent successfully";
     } else {
-        echo "Error: " . $sql . "<br>" . mysqli_error($link);
+        echo "Error: " . pg_last_error($link);
     }
 }
 ?>
@@ -33,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <header>
     <h1>Teacher Portal - Parent Contact</h1>
 </header>
-<?php include("navBar.php");?>
+<?php include("navBar.php"); ?>
 <form method="post" action="">
     <textarea name="message" placeholder="Type your message here"></textarea>
     <input type="submit" value="Send">

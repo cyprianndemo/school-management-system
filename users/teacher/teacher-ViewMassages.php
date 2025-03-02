@@ -6,7 +6,7 @@ include_once('../../db-connect.php');
 $reciever_id = $_SESSION['login_id'];
 
 // SQL query to fetch all messages for this parent
-$sql = "SELECT * FROM messages WHERE reciever_id = $1 ORDER BY date DESC";
+$sql = "SELECT * FROM messages WHERE receiver_id = $1 ORDER BY date DESC";
 
 // Use pg_query_params to prevent SQL injection
 $result = pg_query_params($link, $sql, array($reciever_id));
