@@ -16,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $date = date('Y-m-d');
 
     // SQL query to insert the message into the database
-    $sql = "INSERT INTO messages (message, sender_id, reciever_id, date) VALUES ($1, $2, $3, $4)";
+    $sql = "INSERT INTO messages (message, sender_id, receiver_id, date) VALUES ($1, $2, $3, $4)";
     
     // Execute the SQL query using prepared statement with pg_query_params
     $result = pg_query_params($link, $sql, array($message, $sender_id, $reciever_id, $date));

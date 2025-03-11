@@ -24,6 +24,36 @@ if (!isset($login_session)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Management System - Parent Registration</title>
     <link rel="stylesheet" href="../../sources/css/styles.css">
+    <style>
+        .password-requirements {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            position: absolute;
+            right: -250px;
+            width: 230px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .password-field {
+            position: relative;
+        }
+        
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 <header>
@@ -35,15 +65,63 @@ if (!isset($login_session)) {
     <?php
     include_once('../../db-connect.php');
 
+    // Function to validate password strength
+    function validatePassword($password) {
+        $errors = [];
+        
+        // Check length
+        if (strlen($password) < 8) {
+            $errors[] = "Password must be at least 8 characters long";
+        }
+        
+        // Check for uppercase letter
+        if (!preg_match('/[A-Z]/', $password)) {
+            $errors[] = "Password must contain at least one uppercase letter";
+        }
+        
+        // Check for lowercase letter
+        if (!preg_match('/[a-z]/', $password)) {
+            $errors[] = "Password must contain at least one lowercase letter";
+        }
+        
+        // Check for numeric character
+        if (!preg_match('/[0-9]/', $password)) {
+            $errors[] = "Password must contain at least one number";
+        }
+        
+        // Check for non-alphanumeric character
+        if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
+            $errors[] = "Password must contain at least one special character";
+        }
+        
+        return $errors;
+    }
+
     // Process the form submission
     if (isset($_POST['submit'])) {
+        $passwordErrors = [];
+        $formErrors = [];
+        
         // Validate that required fields are not empty
         if (empty($_POST['id']) || empty($_POST['password']) || empty($_POST['fathername'])) {
-            echo "<p class='error'>Parent ID, password, and father name are required fields.</p>";
-        } else {
+            $formErrors[] = "Parent ID, password, and father name are required fields.";
+        }
+        
+        // Validate password
+        if (!empty($_POST['password'])) {
+            $passwordErrors = validatePassword($_POST['password']);
+            
+            // Check if passwords match
+            if ($_POST['password'] !== $_POST['confirm_password']) {
+                $passwordErrors[] = "Passwords do not match";
+            }
+        }
+        
+        // If there are no errors, proceed with database insertion
+        if (empty($formErrors) && empty($passwordErrors)) {
             // Set the values of the form to the variables
             $id = pg_escape_string($link, $_POST['id']);
-            $password = pg_escape_string($link, $_POST['password']);
+            $password = $_POST['password']; // Don't escape passwords before hashing
             $fathername = pg_escape_string($link, $_POST['fathername']);
             $mothername = pg_escape_string($link, $_POST['mothername']);
             $fatherphone = pg_escape_string($link, $_POST['fatherphone']);
@@ -56,29 +134,55 @@ if (!isset($login_session)) {
             // Begin a transaction to ensure data consistency
             pg_query($link, "BEGIN");
 
-            // First, insert into the 'parents' table
-            $parentsSQL = "INSERT INTO parents (id, password, fathername, mothername, fatherphone, motherphone, address) 
-                    VALUES ('$id', '$hashedPassword', '$fathername', '$mothername', '$fatherphone', '$motherphone', '$address')";
-            $parentsResult = pg_query($link, $parentsSQL);
+            try {
+                // First, insert into the 'parents' table using prepared statements
+                $parentsSQL = "INSERT INTO parents (id, password, fathername, mothername, fatherphone, motherphone, address) 
+                        VALUES ($1, $2, $3, $4, $5, $6, $7)";
+                $parentsResult = pg_query_params(
+                    $link, 
+                    $parentsSQL, 
+                    array($id, $hashedPassword, $fathername, $mothername, $fatherphone, $motherphone, $address)
+                );
+                
+                if (!$parentsResult) {
+                    throw new Exception("Could not enter data into parents table: " . pg_last_error($link));
+                }
 
-            // Then, insert into the 'users' table
-            $usersSQL = "INSERT INTO users (userid, password, usertype) VALUES ('$id', '$hashedPassword', 'parent')";
-            $usersResult = pg_query($link, $usersSQL);
+                // Then, insert into the 'users' table using prepared statements
+                $usersSQL = "INSERT INTO users (userid, password, usertype) VALUES ($1, $2, $3)";
+                $usersResult = pg_query_params(
+                    $link, 
+                    $usersSQL, 
+                    array($id, $hashedPassword, 'parent')
+                );
+                
+                if (!$usersResult) {
+                    throw new Exception("Could not enter data into users table: " . pg_last_error($link));
+                }
 
-            // Check if both operations were successful
-            if ($parentsResult && $usersResult) {
+                // Commit the transaction if both queries were successful
                 pg_query($link, "COMMIT");
                 echo "<p class='success'>Parent information and user account created successfully!</p>";
+                
                 // Clear form values after successful submission
                 $_POST = array();
-            } else {
+            } catch (Exception $e) {
+                // Rollback the transaction if any query failed
                 pg_query($link, "ROLLBACK");
-                echo "<p class='error'>Error: Could not save data. " . pg_last_error($link) . "</p>";
+                echo "<p class='error'>Error: " . $e->getMessage() . "</p>";
+            }
+        } else {
+            // Display all errors
+            foreach ($formErrors as $error) {
+                echo "<p class='error'>$error</p>";
+            }
+            foreach ($passwordErrors as $error) {
+                echo "<p class='error'>$error</p>";
             }
         }
     }
     ?>
-    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" id="parentForm">
         <table>
             <tr>
                 <td>Parent Id:</td>
@@ -86,7 +190,22 @@ if (!isset($login_session)) {
             </tr>
             <tr>
                 <td>Parent Password:</td>
-                <td><input id="password" type="password" name="password" placeholder="Enter Password" required></td>
+                <td class="password-field">
+                    <input id="password" type="password" name="password" placeholder="Enter Password" required>
+                    <div id="passwordRequirements" class="password-requirements">
+                        Password must contain at least 8 characters, including:
+                        <ul>
+                            <li>At least one uppercase letter</li>
+                            <li>At least one lowercase letter</li>
+                            <li>At least one number</li>
+                            <li>At least one special character</li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>Confirm Password:</td>
+                <td><input id="confirm_password" type="password" name="confirm_password" placeholder="Confirm Password" required></td>
             </tr>
             <tr>
                 <td>Father Name:</td>
@@ -115,5 +234,59 @@ if (!isset($login_session)) {
         </table>
     </form>
 </main>
+<script>
+    // Show password requirements when password field is focused
+    document.getElementById('password').addEventListener('focus', function() {
+        document.getElementById('passwordRequirements').style.display = 'block';
+    });
+    
+    // Hide password requirements when focus leaves password field
+    document.getElementById('password').addEventListener('blur', function() {
+        document.getElementById('passwordRequirements').style.display = 'none';
+    });
+    
+    // Client-side validation to enhance user experience
+    document.getElementById('parentForm').addEventListener('submit', function(e) {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        let errors = [];
+        
+        // Check password length
+        if (password.length < 8) {
+            errors.push("Password must be at least 8 characters long");
+        }
+        
+        // Check for uppercase letter
+        if (!/[A-Z]/.test(password)) {
+            errors.push("Password must contain at least one uppercase letter");
+        }
+        
+        // Check for lowercase letter
+        if (!/[a-z]/.test(password)) {
+            errors.push("Password must contain at least one lowercase letter");
+        }
+        
+        // Check for numeric character
+        if (!/[0-9]/.test(password)) {
+            errors.push("Password must contain at least one number");
+        }
+        
+        // Check for non-alphanumeric character
+        if (!/[^a-zA-Z0-9]/.test(password)) {
+            errors.push("Password must contain at least one special character");
+        }
+        
+        // Check if passwords match
+        if (password !== confirmPassword) {
+            errors.push("Passwords do not match");
+        }
+        
+        // If there are errors, prevent form submission and show errors
+        if (errors.length > 0) {
+            e.preventDefault();
+            alert("Please fix the following errors:\n" + errors.join("\n"));
+        }
+    });
+</script>
 </body>
 </html>
