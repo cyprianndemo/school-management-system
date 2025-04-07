@@ -12,7 +12,10 @@
         <li><a href="student-Manage.php">Manage Student</a></li>
         <li><a href="teacher-Manage.php">Manage Teacher</a></li>
         <li><a href="parent-Manage.php">Manage Parent</a></li>
+        <li><a href="parent_engagement_report.php" class="btn btn-dark">View Parental Engagement Report</a>
+</li>
         <li><a href="logout.php">Logout</a></li>
+  
     </ul>
 </nav>
 </body>

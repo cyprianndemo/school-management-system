@@ -12,61 +12,56 @@ $myid = stripslashes($myid);
 // Start the session
 session_start();
 
-// First, retrieve the user record based on userid only
+// Retrieve the user record based on userid
 $sql = "SELECT userid, password, usertype FROM users WHERE userid=$1";
-
-// Run the query with prepared statements to prevent SQL injection
 $result = pg_query_params($link, $sql, array($myid));
 
-// Check if the query executed successfully
 if (!$result) {
-    echo "An error occurred.\n";
-    exit;
+    die("Database error: " . pg_last_error($link)); // Display database error
 }
 
-// Count the number of rows in the result
-$count = pg_num_rows($result);
-
-// If a user is found, verify the password
-if ($count == 1) {
-    // Fetch the user data
+// Check if the user exists
+if (pg_num_rows($result) == 1) {
     $user = pg_fetch_assoc($result);
     $hashedPassword = $user['password'];
     $usertype = $user['usertype'];
-    
-    // Verify the password using password_verify
+
+    // Verify the password
     if (password_verify($mypassword, $hashedPassword)) {
-        // Password is correct, store the user ID in a session variable
+        // Store session variables
         $_SESSION['login_id'] = $myid;
-        
-        // Redirect based on the user type
+        $_SESSION['role'] = $usertype;
+
+        // ✅ Update last login timestamp in users table
+        pg_query_params($link, "UPDATE users SET last_login = NOW() WHERE userid = $1", array($myid));
+
+        // ✅ Insert login record into parent_logins if the user is a parent
+        if ($usertype == 'parent') {
+            pg_query_params($link, "INSERT INTO parent_logins (parent_id) VALUES ($1)", array($myid));
+        }
+
+        // Redirect based on user type
         switch ($usertype) {
             case "admin":
-                // Redirect to the admin module
                 header("Location: ../users/admin");
                 break;
             case "teacher":
-                // Redirect to the teacher module
                 header("Location: ../users/teacher");
                 break;
             case "parent":
-                // Redirect to the parent module
                 header("Location: ../users/parent");
                 break;
             default:
-                // If the user type doesn't match any case, redirect to the login page with an error
                 header("Location: ../index.php?login=false");
                 break;
         }
-        exit;
+        exit();
     } else {
-        // Password is incorrect
-        header("Location: ../index.php?login=false");
-        exit;
+        header("Location: ../index.php?login=false"); // Incorrect password
+        exit();
     }
 } else {
-    // No user found with that ID
-    header("Location: ../index.php?login=false");
-    exit;
+    header("Location: ../index.php?login=false"); // User not found
+    exit();
 }
 ?>

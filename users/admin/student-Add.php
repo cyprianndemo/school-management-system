@@ -44,90 +44,54 @@ if (isset($_SESSION['login_id'])) {
     // Process form submission
     if (isset($_POST['submit'])) {
         // Validate that required fields are not empty
-        if (empty($_POST['studentId']) || empty($_POST['studentName']) || empty($_POST['studentPassword'])) {
-            echo "<p class='error'>Student ID, Name, and Password are required fields.</p>";
+        if (empty($_POST['studentId']) || empty($_POST['studentName'])) {
+            echo "<p class='error'>Student ID and Name are required fields.</p>";
         } else {
             // Get and sanitize the values from the form
             $stuId = pg_escape_string($link, $_POST['studentId']);
             $stuName = pg_escape_string($link, $_POST['studentName']);
-            $stuPassword = $_POST['studentPassword']; // Don't escape passwords before hashing
-            $stuPhone = pg_escape_string($link, $_POST['studentPhone'] ?? '');
             $stuEmail = pg_escape_string($link, $_POST['studentEmail'] ?? '');
             $stuSex = isset($_POST['sex']) ? pg_escape_string($link, $_POST['sex']) : '';
             $stuDOB = pg_escape_string($link, $_POST['studentDOB'] ?? '');
             $stuAddress = pg_escape_string($link, $_POST['studentAddress'] ?? '');
             $stuParentId = pg_escape_string($link, $_POST['studentParentId'] ?? '');
 
-            // Hash the password before saving it to the database
-            $hashedPassword = password_hash($stuPassword, PASSWORD_DEFAULT);
-
             // Begin a transaction to ensure data consistency
             pg_query($link, "BEGIN");
             
-            // Flag to track if all operations are successful
-            $success = true;
-            
-            // Check if student ID already exists in the students table
+            // Check if student ID already exists
             $checkStudent = pg_query($link, "SELECT id FROM students WHERE id = '$stuId'");
             if (pg_num_rows($checkStudent) > 0) {
                 echo "<p class='error'>Error: Student ID already exists.</p>";
-                $success = false;
-            }
-            
-            // Check if student ID already exists in the users table
-            $checkUser = pg_query($link, "SELECT userid FROM users WHERE userid = '$stuId'");
-            if (pg_num_rows($checkUser) > 0) {
-                echo "<p class='error'>Error: User ID already exists.</p>";
-                $success = false;
-            }
-            
-            if ($success) {
+                pg_query($link, "ROLLBACK");
+            } else {
                 try {
-                    // SQL query to insert the new student's record into the 'students' table
-                    // Changed parent_id to parentid
-                    $sqlStudents = "INSERT INTO students (id, name, password, phone, email, sex, dob, address, parentid) 
-                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
+                    // Insert new student record into the 'students' table
+                    $sqlStudents = "INSERT INTO students (id, name, email, sex, dob, address, parentid) 
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7)";
                     
-                    // Execute the SQL query with prepared statements for better security
+                    // Execute the SQL query using prepared statements
                     $resultStudents = pg_query_params(
                         $link, 
                         $sqlStudents, 
-                        array($stuId, $stuName, $hashedPassword, $stuPhone, $stuEmail, $stuSex, $stuDOB, $stuAddress, $stuParentId)
+                        array($stuId, $stuName, $stuEmail, $stuSex, $stuDOB, $stuAddress, $stuParentId)
                     );
-                    
+
                     if (!$resultStudents) {
                         throw new Exception("Could not enter data into students table: " . pg_last_error($link));
                     }
 
-                    // SQL query to insert the new student's record into the 'users' table
-                    $sqlUsers = "INSERT INTO users (userid, password, usertype) VALUES ($1, $2, $3)";
-                    
-                    // Execute the SQL query with prepared statements
-                    $resultUsers = pg_query_params(
-                        $link, 
-                        $sqlUsers, 
-                        array($stuId, $hashedPassword, 'student')
-                    );
-                    
-                    if (!$resultUsers) {
-                        throw new Exception("Could not enter data into users table: " . pg_last_error($link));
-                    }
-
-                    // Commit the transaction if both queries were successful
+                    // Commit the transaction if successful
                     pg_query($link, "COMMIT");
+                    echo "<p class='success'>Student record created successfully!</p>";
                     
-                    echo "<p class='success'>Student record created successfully! The student can now log in.</p>";
-                    
-                    // Reset the form after successful submission
+                    // Reset form after successful submission
                     $_POST = array();
                 } catch (Exception $e) {
-                    // Rollback the transaction if any query failed
+                    // Rollback the transaction if any query fails
                     pg_query($link, "ROLLBACK");
                     echo "<p class='error'>Error: " . $e->getMessage() . "</p>";
                 }
-            } else {
-                // Rollback the transaction if validation failed
-                pg_query($link, "ROLLBACK");
             }
         }
     }
@@ -144,14 +108,6 @@ if (isset($_SESSION['login_id'])) {
             <tr>
                 <td>Student Name:</td>
                 <td><input id="studentName" type="text" name="studentName" placeholder="Enter Student Name" value="<?php echo isset($_POST['studentName']) ? htmlspecialchars($_POST['studentName']) : ''; ?>" required></td>
-            </tr>
-            <tr>
-                <td>Student Password:</td>
-                <td><input id="studentPassword" type="password" name="studentPassword" placeholder="Enter Password" required></td>
-            </tr>
-            <tr>
-                <td>Student Phone:</td>
-                <td><input id="studentPhone" type="text" name="studentPhone" placeholder="Enter Student Phone" value="<?php echo isset($_POST['studentPhone']) ? htmlspecialchars($_POST['studentPhone']) : ''; ?>"></td>
             </tr>
             <tr>
                 <td>Student Email:</td>
